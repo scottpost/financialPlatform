@@ -48,11 +48,11 @@ class MarketData:
     #self.turns['6']['APPL']
     #self.stocks['TASR']['3']
 
-    def getPrice(self, name, turn = self.currentTurn):
-      return self.stocks[name][str(turn)]['price']
+  def getPrice(self, name, turn = self.currentTurn):
+    return self.stocks[name][str(turn)]['price']
 
-    def getRandomStockData(self, turn = self.currentTurn):
-      return random.choice(self.turns[str(turn)])
+  def getRandomStockData(self, turn = self.currentTurn):
+    return random.choice(self.turns[str(turn)])
 
 class DelayedCash:
   def __init__(self, cash, delay):
