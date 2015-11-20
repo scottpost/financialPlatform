@@ -1,7 +1,24 @@
+#       _                 _       _   _             
+#   ___(_)_ __ ___  _   _| | __ _| |_(_) ___  _ __  
+#  / __| | '_ ` _ \| | | | |/ _` | __| |/ _ \| '_ \ 
+#  \__ \ | | | | | | |_| | | (_| | |_| | (_) | | | |
+#  |___/_|_| |_| |_|\__,_|_|\__,_|\__|_|\___/|_| |_|
+# 
+
+#==================================================================================================================================
+# IMPORTS & CONFIGURATION
+#==================================================================================================================================
+
 import time
 import json
 import sqlite3
-import strategies
+import strategies 
+con = sqlite3.connect("data.db")
+cur = con.cursor()                                           
+
+#==================================================================================================================================
+# RUN MAIN SIMULATION
+#==================================================================================================================================
 
 def runSimulation(portfolio, strategy, startTurn = 1, endTurn = 47, turnIncrement = 1):
   #print "This portfolio started with $" + str(portfolio.cash)
@@ -14,8 +31,9 @@ def runSimulation(portfolio, strategy, startTurn = 1, endTurn = 47, turnIncremen
   #print "This portfolio had an ROI of " + str(portfolio.getROI(turnData)) +"%"
   return portfolio.getROI(turnData)
 
-con = sqlite3.connect("data.db")
-cur = con.cursor()
+#==================================================================================================================================
+# CLASS REPRESENTATIONS
+#==================================================================================================================================
 
 class MarketData:
   def __init__(self, turn = 0):
@@ -41,6 +59,8 @@ class MarketData:
     self.turns.append(turn)
     self.turn += turnIncrement
 
+
+
 class DelayedCash:
   def __init__(self, cash, delay):
     self.cash = cash
@@ -52,6 +72,8 @@ class DelayedCash:
       return self
     else:
       return null
+
+
 
 class Position:
   def __init__(self, name, quantity, currentDate):
@@ -68,6 +90,8 @@ class Position:
   def getValue(self, time):
     return self.quantity * getPrice(self.name, time)
   
+
+
 class Portfolio:
   def __init__(self, cash, cashDelay, positions, tradeFee = 0):
     self.cash = cash
@@ -125,8 +149,13 @@ class Portfolio:
     for position in self.positions:
       self.sellPosition(position, getStockData(turnData, position.name))
 
-def getStockData(turnData, name):
-    for stockData in turnData:
-      if stockData[1] == name:
-        return stockData
-    return None
+  #WE NEED TO GET RID OF THIS STUPID FUNCTION
+  def getStockData(turnData, name):
+      for stockData in turnData:
+        if stockData[1] == name:
+          return stockData
+      return None
+
+#==================================================================================================================================
+# 
+#==================================================================================================================================                       
