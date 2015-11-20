@@ -15,13 +15,22 @@ import time
 import sqlite3
 con = sqlite3.connect("data.db")
 cur = con.cursor()
+STOCKS = ["VDSI", "TASR", "S", "GS", "MDXG", "SBUX", "AAPL", "DUST", "NUGT", "SPY", "ATVI", "SUNE", "GE"]
 
 #==================================================================================================================================
-# RUN MAIN PARSE FUNCTION
+# PARSING FUNCTIONS
 #==================================================================================================================================
+
+def parseMarketData(stocks = STOCKS):
+  turn = 0
+  while(True):  
+    for stock in stocks:
+      parseStockData(stock, turn)
+    turn += 1
+    time.sleep(60)
 
 #start when the market opens 
-def collectData(name):
+def parseStockData(name, turn):
   yahooStock = Share(name)
   #per day
   avgDayVol = yahooStock.get_avg_daily_volume()
@@ -33,9 +42,16 @@ def collectData(name):
   volume = yahooStock.get_volume()
   shortRatio = yahooStock.get_short_ratio()
   print name, price, change, volume
-  cur.execute("INSERT or IGNORE INTO stocks VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)", (time.time(), name, price, change, volume, shortRatio, avgDayVol, avg50Day, avg200Day))
+  cur.execute("INSERT or IGNORE INTO stocks VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)", (turn, name, price, change, volume, shortRatio, avgDayVol, avg50Day, avg200Day))
   con.commit()
-  
+
 #==================================================================================================================================
 # 
 #==================================================================================================================================                       
+
+parseMarketData()
+
+
+
+
+
