@@ -1,65 +1,44 @@
-#       _                 _       _   _             
-#   ___(_)_ __ ___  _   _| | __ _| |_(_) ___  _ __  
-#  / __| | '_ ` _ \| | | | |/ _` | __| |/ _ \| '_ \ 
-#  \__ \ | | | | | | |_| | | (_| | |_| | (_) | | | |
-#  |___/_|_| |_| |_|\__,_|_|\__,_|\__|_|\___/|_| |_|
-# 
-
-#==================================================================================================================================
-# IMPORTS & CONFIGURATION
-#==================================================================================================================================
-
-import time
-import json
+import os
 import sqlite3
-import strategies 
-con = sqlite3.connect("data.db")
-cur = con.cursor()                                           
-
-#==================================================================================================================================
-# RUN MAIN SIMULATION
-#==================================================================================================================================
-
-def runSimulation(portfolio, strategy, startTurn = 1, endTurn = 47, turnIncrement = 1):
-  #print "This portfolio started with $" + str(portfolio.cash)
-  turn = startTurn
-  turnData = []
-  while (turn <= endTurn):
-    turnData = retrieveData(turn)
-    strategy(portfolio, turnData, turn)
-    turn += 1
-  #print "This portfolio had an ROI of " + str(portfolio.getROI(turnData)) +"%"
-  return portfolio.getROI(turnData)
-
-#==================================================================================================================================
-# CLASS REPRESENTATIONS
-#==================================================================================================================================
+import random
 
 class MarketData:
-  def __init__(self, turn = 0):
+  def __init__(self, turn = 0, turnIncrement = 1):
     sqlConnection = sqlite3.connect("data.db")
     self.sqlCursor = sqlConnection.cursor()
-    self.turns = []
-    self.data = {}
-    self.addTurn()
+    self.currentTurn = turn
+    self.turns = {}
+    self.numStocks = 0
+    self.stocks = {}
+    self.addTurn(turnIncrement)
 
   def addTurn(turnIncrement = 1):
-    t = (self.turn,)
-    cur.execute('SELECT * FROM stocks WHERE turn=?', t)
-    arrayRows = cur.fetchall()
-    turn = []
+    t = (self.currentTurn,)
+    self.sqlCursor.execute('SELECT * FROM stocks WHERE turn=?', t)
+    arrayRows = self.sqlCursor.fetchall()
+    turn = {}
+    self.numStocks = 0
     for row in arrayRows:
-      dictRow = {'name' : row[1], 'price' : row[2], 'turn' : row[3]}
-      turn.append(dictRow)
-      stockData = self.data[row[1]]
+      name = row[1]
+      price = row[2]
+      dictRow = {'name' : name, 'turn' : self.currentTurn, 'price' : price}
+      turn[name] = dictRow
+      stockData = self.stocks[name]
       if stockData:
-        stockData.append(dictRow)
+        stockData[str(self.currentTurn)] = dictRow
       else:
-        self.data[row[1]] = [dictRow]
-    self.turns.append(turn)
-    self.turn += turnIncrement
+        self.stocks[name][str(self.currentTurn)] = dictRow
+      self.numStocks += 1
+    self.turns[str(self.currentTurn)] = turn
+    self.currentTurn += turnIncrement
+    #self.turns['6']['APPL']
+    #self.stocks['TASR']['3']
 
+    def getPrice(self, name, turn = self.currentTurn):
+      return self.stocks[name][str(turn)]['price']
 
+    def getRandomStockData(self, turn = self.currentTurn):
+      return random.choice(self.turns[str(turn)])
 
 class DelayedCash:
   def __init__(self, cash, delay):
@@ -73,27 +52,14 @@ class DelayedCash:
     else:
       return null
 
-
-
 class Position:
-  def __init__(self, name, quantity, currentDate):
+  def __init__(self, name, quantity, turn):
     self.name = name
     self.quantity = quantity
-    self.buyDate = currentDate
-
-  def __repr__(self):
-    return str([self.name, self.quantity])
-    
-  def getValue(self):
-    return self.quantity * getPrice(self.name)
+    self.buyTurn = turn
   
-  def getValue(self, time):
-    return self.quantity * getPrice(self.name, time)
-  
-
-
 class Portfolio:
-  def __init__(self, cash, cashDelay, positions, tradeFee = 0):
+  def __init__(self, cash = 1000, cashDelay = 0, positions = {}, tradeFee = 0):
     self.cash = cash
     self.cashDelay = cashDelay
     self.positions = positions
@@ -102,60 +68,51 @@ class Portfolio:
     self.history = []
     self.startingValue = cash
   
-  def getPositionsValue(self, turnData):
+  def getPositionsValue(self, data):
     total = 0
     for position in self.positions:
-      total += getStockData(turnData, position.name)[2]
+      total += data.getPrice(position.name)
     return total
 
-  def getTotalValue(self, turnData):
-    return self.getPositionsValue(turnData) + self.cash
+  def getTotalValue(self, data):
+    return self.getPositionsValue(data) + self.cash
 
-  def isHolding(self, position):
-    for currentPosition in self.positions:
-      if currentPosition.name is position.name:
-        return currentPosition
-    return None
+  def getROI(self, data):
+    return (self.getTotalValue(data) - self.startingValue) / self.startingValue
 
-  def getROI(self, turnData):
-    return (self.getTotalValue(turnData) - self.startingValue) / self.startingValue
-    
-  def buyPosition(self, position, stockData):
-    currentValue = stockData[2]
+  def buyPosition(self, position, data):
+    currentValue = data.getPrice(position.name)
     if currentValue > self.cash:
-      return 'No Buy'  
-    currentPosition = self.isHolding(position)
+      return False  
+    currentPosition = self.positions[position.name]
     if currentPosition:
       currentPosition.quantity += position.quantity
-      print "Bought " + currentPosition.name
+      currentPosition.buyTurn = data.currentTurn
     else:
-      self.positions.append(position)
-      print "Bought " + position.name
+      self.positions[position.name] = position
     self.cash -= currentValue
-    return 'Buy'
+    return True
 
-  def sellPosition(self, position, stockData):
-    currentPosition = self.isHolding(position)
+  def sellPosition(self, position, data):
+    currentPosition = self.positions[position.name]
     if not currentPosition:
-      return 'No Sell'
-    if currentPosition.quantity < position.quantity:
-      return 'No Sell'
+      return False
+    if position.quantity > currentPosition.quantity:
+      return False
     currentPosition.quantity -= position.quantity
-    self.cash += position.quantity * stockData[2]
-    print "Sold " + currentPosition.name
-    return 'Sell'
+    if currentPosition.quantity == 0:
+      positions.pop(position.name)
+    self.cash += position.quantity * data.getPrice(position.name)
+    return True
 
-  def sellAll(self,turnData):
+  def sellAll(self, data):
     for position in self.positions:
-      self.sellPosition(position, getStockData(turnData, position.name))
+      self.sellPosition(position, data)
 
-  #WE NEED TO GET RID OF THIS STUPID FUNCTION
-  def getStockData(turnData, name):
-      for stockData in turnData:
-        if stockData[1] == name:
-          return stockData
-      return None
-
-#==================================================================================================================================
-# 
-#==================================================================================================================================                       
+def runSimulation(portfolio, strategy, startTurn = 0, endTurn = 47, turnIncrement = 1):
+  data = MarketData(startTurn, turnIncrement)
+  while data.currentTurn <= endTurn:
+    strategy(portfolio, data)
+    data.addTurn(turnIncrement)
+  #print "This portfolio had an ROI of " + str(portfolio.getROI(data)) +"%"
+  return portfolio.getROI(data)

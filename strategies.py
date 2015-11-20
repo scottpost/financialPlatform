@@ -1,31 +1,15 @@
-#       _             _             _           
-#   ___| |_ _ __ __ _| |_ ___  __ _(_) ___  ___ 
-#  / __| __| '__/ _` | __/ _ \/ _` | |/ _ \/ __|
-#  \__ \ |_| | | (_| | ||  __/ (_| | |  __/\__ \
-#  |___/\__|_|  \__,_|\__\___|\__, |_|\___||___/
-#                             |___/             
+def randomStrategy(portfolio, data):
+  portfolio.sellAll(data)
+  for x in range(2):
+    name = data.randomStockData()['name']
+    position = Position(name, 1, data.currentTurn)
+    if not portfolio.buyPosition(position, data):
+      break
 
-#==================================================================================================================================
-# MARKET STRATEGIES
-#==================================================================================================================================
-
-def randomStrategy(portfolio, turnData, currentDate):
-    portfolio.sellAll(turnData)
-    for x in range(2):
-      stockData = random.choice(turnData)
-      stock = stockData[1]
-      position = Position(stock, 1, currentDate)
-      if (portfolio.buyPosition(position, stockData) == "No Buy"):
+def buyAndHoldStrategy(portfolio, data, startTurn = 1):
+  if data.currentTurn == startTurn:
+    for stockData in data.stocks:
+      name = stockData[str(startTurn)]['name']
+      position = Position(name, 1, data.currentTurn)
+      if not portfolio.buyPosition(position, stockData):
         break
-
-def buyAndHoldStrategy(portfolio, turnData, currentDate):
-  if currentDate == 1:
-    for stockData in turnData:
-      stock = stockData[1]
-      position = Position(stock, 1, currentDate)
-      if (portfolio.buyPosition(position, stockData) == "No Buy"):
-        break
-
-#==================================================================================================================================
-# 
-#==================================================================================================================================                       
