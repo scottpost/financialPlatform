@@ -1,12 +1,13 @@
-from googlefinance import getQuotes
-from yahoo_finance import Share
-from datetime import datetime
-import sched
-import time
-import json
-import os
-import sqlite3
-import random
+def runSimulation(portfolio, strategy, startTurn = 1, endTurn = 47, turnIncrement = 1):
+  #print "This portfolio started with $" + str(portfolio.cash)
+  turn = startTurn
+  turnData = []
+  while (turn <= endTurn):
+    turnData = retrieveData(turn)
+    strategy(portfolio, turnData, turn)
+    turn += 1
+  #print "This portfolio had an ROI of " + str(portfolio.getROI(turnData)) +"%"
+  return portfolio.getROI(turnData)
 
 con = sqlite3.connect("data.db")
 cur = con.cursor()
@@ -35,57 +36,6 @@ class MarketData:
     self.turns.append(turn)
     self.turn += turnIncrement
 
-
-#start when the market opens 
-def collectData(name):
-  yahooStock = Share(name)
-  #per day
-  avgDayVol = yahooStock.get_avg_daily_volume()
-  avg50Day = yahooStock.get_50day_moving_avg()
-  avg200Day = yahooStock.get_200day_moving_avg()
-  #per minute
-  price = yahooStock.get_price()
-  change = yahooStock.get_change()
-  volume = yahooStock.get_volume()
-  shortRatio = yahooStock.get_short_ratio()
-  print name, price, change, volume
-  cur.execute("INSERT or IGNORE INTO stocks VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)", (time.time(), name, price, change, volume, shortRatio, avgDayVol, avg50Day, avg200Day))
-  con.commit()
-
-def randomStrategy(portfolio, turnData, currentDate):
-    portfolio.sellAll(turnData)
-    for x in range(2):
-      stockData = random.choice(turnData)
-      stock = stockData[1]
-      position = Position(stock, 1, currentDate)
-      if (portfolio.buyPosition(position, stockData) == "No Buy"):
-        break
-
-def buyAndHoldStrategy(portfolio, turnData, currentDate):
-  if currentDate == 1:
-    for stockData in turnData:
-      stock = stockData[1]
-      position = Position(stock, 1, currentDate)
-      if (portfolio.buyPosition(position, stockData) == "No Buy"):
-        break
-
-def getStockData(turnData, name):
-    for stockData in turnData:
-      if stockData[1] == name:
-        return stockData
-    return None
-
-def runSimulation(portfolio, strategy, startTurn = 1, endTurn = 47, turnIncrement = 1):
-  #print "This portfolio started with $" + str(portfolio.cash)
-  turn = startTurn
-  turnData = []
-  while (turn <= endTurn):
-    turnData = retrieveData(turn)
-    strategy(portfolio, turnData, turn)
-    turn += 1
-  #print "This portfolio had an ROI of " + str(portfolio.getROI(turnData)) +"%"
-  return portfolio.getROI(turnData)
-
 class DelayedCash:
   def __init__(self, cash, delay):
     self.cash = cash
@@ -98,7 +48,6 @@ class DelayedCash:
     else:
       return null
 
-    
 class Position:
   def __init__(self, name, quantity, currentDate):
     self.name = name
@@ -113,7 +62,6 @@ class Position:
   
   def getValue(self, time):
     return self.quantity * getPrice(self.name, time)
-  
   
 class Portfolio:
   def __init__(self, cash, cashDelay, positions, tradeFee = 0):
@@ -172,7 +120,8 @@ class Portfolio:
     for position in self.positions:
       self.sellPosition(position, getStockData(turnData, position.name))
 
-for i in range(1):
-  portfolio1 = Portfolio(250, 0, [])
-  roi = runSimulation(portfolio1, randomStrategy)
-
+def getStockData(turnData, name):
+    for stockData in turnData:
+      if stockData[1] == name:
+        return stockData
+    return None
