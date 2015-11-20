@@ -42,7 +42,7 @@ def parseStockData(name, turn):
   volume = yahooStock.get_volume()
   shortRatio = yahooStock.get_short_ratio()
   print name, price, change, volume
-  cur.execute("INSERT or IGNORE INTO stocks VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)", (turn, name, price, change, volume, shortRatio, avgDayVol, avg50Day, avg200Day))
+  cur.execute("INSERT or IGNORE INTO stocks VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)", (name, price, change, volume, shortRatio, avgDayVol, avg50Day, avg200Day, turn))
   con.commit()
 
 #==================================================================================================================================
