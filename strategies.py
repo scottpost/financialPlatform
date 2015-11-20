@@ -1,13 +1,3 @@
-from googlefinance import getQuotes
-from yahoo_finance import Share
-from datetime import datetime
-import sched
-import time
-import json
-import os
-import sqlite3
-import random
-
 def randomStrategy(portfolio, turnData, currentDate):
     portfolio.sellAll(turnData)
     for x in range(2):

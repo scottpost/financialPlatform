@@ -1,3 +1,8 @@
+import time
+import json
+import sqlite3
+import strategies
+
 def runSimulation(portfolio, strategy, startTurn = 1, endTurn = 47, turnIncrement = 1):
   #print "This portfolio started with $" + str(portfolio.cash)
   turn = startTurn
@@ -13,7 +18,7 @@ con = sqlite3.connect("data.db")
 cur = con.cursor()
 
 class MarketData:
-  __init__(self, turn = 0):
+  def __init__(self, turn = 0):
     sqlConnection = sqlite3.connect("data.db")
     self.sqlCursor = sqlConnection.cursor()
     self.turns = []

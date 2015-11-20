@@ -1,7 +1,6 @@
 from googlefinance import getQuotes
 from yahoo_finance import Share
 import time
-import json
 import sqlite3
 
 con = sqlite3.connect("data.db")
